@@ -8,7 +8,7 @@ extern int readIn;
 extern int symbols;
 
 void countSymbols(char data[], int size, int* letters) {
-	#pragma omp parallel for schedule(static, 256) // CHANGED
+//	#pragma omp parallel for schedule(static, 256) // CHANGED
 	for (int i=0; i<size; ++i) {
 		letters[(int)data[i]]++;
 	}
@@ -142,7 +142,7 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	//header will be written later
 	fseek(fpOut, sizeof(long int)+partitions*sizeof(int), SEEK_SET);
 	bool tmp = true;
-	#pragma omp parallel for schedule(static, 256) // CHANGED
+//	#pragma omp parallel for schedule(static, 256) // CHANGED
 	for(i=0; i<partitions; ++i) {
 		if(tmp){
 			//read+1 because '\0' is added automatically
