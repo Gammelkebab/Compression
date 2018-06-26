@@ -1,0 +1,5 @@
+#!/bin/bash
+cd Compression
+git pull -f
+./Script.sh
+
