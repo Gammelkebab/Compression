@@ -39,27 +39,32 @@ void decode(char chrInput[], int inputsize, struct node** root, FILE* fp) {
 	}
 
 	int j = 0;
+	bool flag = true;
+	#pragma omp parallel for schedule(static, 256)
 	for(int i=0; i<inputsize*8; ++i) {
-		struct node* curr_node = root[0];
-		//tree traversal
-		//strBin has characters {'0', '1'}, their integer ascii value is {48,49}
-		while(curr_node->count != 1 && i<inputsize*8) {
-			if(strBin[i] == 48) {
-				curr_node = curr_node->left;
-			} else {
-				curr_node = curr_node->right;
+		if(flag) {
+
+			struct node* curr_node = root[0];
+			//tree traversal
+			//strBin has characters {'0', '1'}, their integer ascii value is {48,49}
+			while(curr_node->count != 1 && i<inputsize*8) {
+				if(strBin[i] == 48) {
+					curr_node = curr_node->left;
+				} else {
+					curr_node = curr_node->right;
+				}
+				++i;
 			}
-			++i;
-		}
-		//leaf found
-		if(curr_node->count == 1) {
-			output[j] = curr_node->values[0];
-			//64 or '@' is stopword! do not count this leaf as character from original text
-			//end of this compressed block is reached
-			//break before incrementing j!
-			if(output[j] == 64) break;
-			j++;
-			--i;
+			//leaf found
+			if(curr_node->count == 1) {
+				output[j] = curr_node->values[0];
+				//64 or '@' is stopword! do not count this leaf as character from original text
+				//end of this compressed block is reached
+				//break before incrementing j!
+				if(output[j] == 64) flag = false;
+				j++;
+				--i;
+			}
 		}
 	}
 
