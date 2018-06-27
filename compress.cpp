@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <omp.h>
 #include "compress.h"
 #include "tree.h"
 
@@ -8,16 +9,37 @@ extern int readIn;
 extern int symbols;
 
 void countSymbols(char data[], int size, int* letters) {
-#pragma omp parallel for schedule(static)
-	for (int i=0; i<size; ++i) {
-		letters[(int)data[i]]++;
+	int* ctr;
+
+	#pragma omp parallel // CHANGED (einzeln harter freeze am anfang, aber 3x speedup)
+	{
+		const int 	
+			nthreads = omp_get_num_threads(),
+			ithread = omp_get_thread_num(),
+			brick = size / nthreads + 1;
+		#pragma omp single 
+		{
+			ctr = new int[symbols * nthreads];
+			for(int i = 0; i < (symbols * nthreads); i ++) ctr[i] = 0;
+		}
+		#pragma omp for
+		for (int i = ithread * brick; (i < ((ithread + 1) * brick) && i < size); i++){
+			ctr[i * symbols + (int)data[i]]++;
+		}
+		#pragma omp for
+		for (int i = 0; i < symbols; i++) {
+			for (int j = 0; j < nthreads; j++)
+			{
+				letters[i] += ctr[j * size + i];
+			}
+		}
 	}
 }
 
 /**
 //read a simple .txt file and count occurence of symbols
 **/
-int readData(const char* filename, int* letters) {
+int readData(const char* filename, int* letters) { //WICHTIG1
 	FILE *fp;
 	int last_pos = 0;
 	int curr_pos = 0;
@@ -114,7 +136,7 @@ int writeAsBinary(struct key_value* binEncoding, char str[], int inputsize, FILE
 // the file is split up in blocks of size 'readIn' (global value)
 // each block is compressed seperately
 */
-int encodeTextFile(char filename[], char output[], struct key_value* binEncoding) {
+int encodeTextFile(char filename[], char output[], struct key_value* binEncoding) { //WICHTIG2
 	FILE *fpIn, *fpOut;
 	char str[readIn+1];
 
@@ -142,7 +164,7 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	//header will be written later
 	fseek(fpOut, sizeof(long int)+partitions*sizeof(int), SEEK_SET);
 	bool tmp = true;
-//	#pragma omp parallel for schedule(static, 256) // CHANGED
+	#pragma omp parallel for schedule(static, 256) // CHANGED (einzeln speedup von 1,3x)
 	for(i=0; i<partitions; ++i) {
 		if(tmp){
 			//read+1 because '\0' is added automatically

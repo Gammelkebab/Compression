@@ -37,22 +37,22 @@ int main(int argc, char** argv) {
 	int* letters = new int[symbols]();
 
 	//read data and create huffmann tree
-	if(!readData(filename[0], letters)) {
+	if(!readData(filename[0], letters)) { // WICHTIG1
 		return 0;
 	}
-	//printFreq();
+//	printFreq();
 	root = createTree(letters);
 	struct key_value* binEncoding = new struct key_value[root[0]->count]();
 	encoding(binEncoding, root[0]);
 
-	//printTree(root, 1);
-	//printEncoding(binEncoding, root[0]->count);
+//	printTree(root, 1);
+//	printEncoding(binEncoding, root[0]->count);
 
     gettimeofday(&begin, NULL);
 
 	//start actual encoding
 	printf("start compressing ...");
-	encodeTextFile(filename[0], fileEncoded,  binEncoding);
+	encodeTextFile(filename[0], fileEncoded,  binEncoding); // WICHTIG2
 	printf("done!\n");
 
     /*****************************
@@ -66,27 +66,12 @@ int main(int argc, char** argv) {
 
 	//decode
 	printf("start decompressing ...");
-	decodeText(fileEncoded, filename[1], root);
+	decodeText(fileEncoded, filename[1], root); // WICHTIG3
 	printf("done!\n");
 
     gettimeofday(&end, NULL);
     elapsed += (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec)/1000000.0);
     printf("Runtime: %.5fs\n",elapsed);
-    ifstream myfileIn;
-    myfileIn.open("buf");
-    string line;
-    while(getline(myfileIn, line)) {
-        cout << elapsed << "\n";
-        elapsed += stod(line);
-        cout << elapsed << "\n";
-    }
-    myfileIn.close();
-    ofstream myfileOut;
-    myfileOut.open("buf");
-    myfileOut << elapsed << "\n";
-    myfileOut.close();
-
-    printf("Total: %.5fs\n", rT);
 
 	delete[] letters;
 	delete[] binEncoding;

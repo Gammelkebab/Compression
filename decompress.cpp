@@ -40,7 +40,7 @@ void decode(char chrInput[], int inputsize, struct node** root, FILE* fp) {
 
 	int j = 0;
 	bool flag = true;
-//	#pragma omp parallel for schedule(static)
+//	#pragma omp parallel for schedule(static) // CHANGED (einzeln verlangsamend)
 	for(int i=0; i<inputsize*8; ++i) {
 		if(flag) {
 
@@ -81,7 +81,7 @@ void decode(char chrInput[], int inputsize, struct node** root, FILE* fp) {
 //first the header is read
 //second each block of data is decoded
 */
-int decodeText(char filename[], char output[], struct node** root) {
+int decodeText(char filename[], char output[], struct node** root) { //WICHTIG3
 	FILE* fpIn;
 	FILE* fpOut;
 	char str[readIn];
@@ -107,6 +107,7 @@ int decodeText(char filename[], char output[], struct node** root) {
 	fread(blockSizes, sizeof(int), num_blocks, fpIn);
 
 	//decode each block and write result immediately back
+//	#pragma omp for schedule(static) //CHANGED (einzeln kein merklicher unterschied)
 	for(long int i=0; i<num_blocks; ++i) {
 		fread(&str[0], sizeof(char), blockSizes[i], fpIn);
 		decode(str, blockSizes[i], root, fpOut);
