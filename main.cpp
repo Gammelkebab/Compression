@@ -7,10 +7,9 @@
 #include "tree.h"
 #include "compress.h"
 #include "decompress.h"
-
+using namespace std;
 int symbols = 128;
 int readIn = 65536;
-double rT = 0;
 
 struct node** root;
 
