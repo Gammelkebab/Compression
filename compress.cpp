@@ -8,7 +8,7 @@ extern int readIn;
 extern int symbols;
 
 void countSymbols(char data[], int size, int* letters) {
-#pragma omp parallel for schedule(static, 256) // CHANGED
+#pragma omp parallel for schedule(static)
 	for (int i=0; i<size; ++i) {
 		letters[(int)data[i]]++;
 	}

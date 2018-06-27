@@ -9,5 +9,5 @@
 module load foss
 
 make
-
+rm buf
 mpirun ./main

@@ -40,7 +40,7 @@ void decode(char chrInput[], int inputsize, struct node** root, FILE* fp) {
 
 	int j = 0;
 	bool flag = true;
-	#pragma omp parallel for schedule(static, 256)
+//	#pragma omp parallel for schedule(static)
 	for(int i=0; i<inputsize*8; ++i) {
 		if(flag) {
 
@@ -62,8 +62,10 @@ void decode(char chrInput[], int inputsize, struct node** root, FILE* fp) {
 				//end of this compressed block is reached
 				//break before incrementing j!
 				if(output[j] == 64) flag = false;
-				j++;
-				--i;
+				else {
+					j++;
+					--i;
+				}
 			}
 		}
 	}

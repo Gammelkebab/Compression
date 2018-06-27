@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
+#include <iostream.h>
+#include <fstream.h>
 #include "tree.h"
 #include "compress.h"
 #include "decompress.h"
 
 int symbols = 128;
 int readIn = 65536;
+double rT = 0;
 
 struct node** root;
 
@@ -70,6 +73,21 @@ int main(int argc, char** argv) {
     gettimeofday(&end, NULL);
     elapsed += (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec)/1000000.0);
     printf("Runtime: %.5fs\n",elapsed);
+    ifstream myfileIn;
+    myfileIn.open("buf");
+    string line;
+    while(getline(myfileIn, line)) {
+        cout << elapsed << "\n";
+        elapsed += stod(line);
+        cout << elapsed << "\n";
+    }
+    myfileIn.close();
+    ofstream myfileOut;
+    myfileOut.open("buf");
+    myfileOut << elapsed << "\n";
+    myfileOut.close();
+
+    printf("Total: %.5fs\n", rT);
 
 	delete[] letters;
 	delete[] binEncoding;
