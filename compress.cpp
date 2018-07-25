@@ -90,12 +90,11 @@ int writeAsBinary(struct key_value* binEncoding, char str[], int inputsize, FILE
 	gettimeofday(&tmp1, NULL);
 
 	//printf("inputsize: %d\n",inputsize);
-	//#pragma omp for
+	//#pragma omp parallel for schedule (guided)
 	for(int i=0; i<inputsize; ++i) {
 		char* bin = key(binEncoding, str[i]);
 		//first value of bin is size of bin-1
 		//printf("bin[0]+1: %d\n",(bin[0]+1));
-		// private j? reduce bin?git add
 		for(int j=1; j<bin[0]+1; ++j) {
 			full_byte += bin[j]*pow(2,bin_exp);
 			bin_exp--;
@@ -131,7 +130,7 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	FILE *fpIn, *fpOut;
 	char str[readIn+1];
 
-	struct timeval tmp1, tmp2;
+	struct timeval tmp1, tmp2, tmp3, tmp4;
 	gettimeofday(&tmp1, NULL);
 
 	fpIn = fopen(filename, "r");
@@ -158,32 +157,51 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	//header will be written later
 	fseek(fpOut, sizeof(long int)+partitions*sizeof(int), SEEK_SET);
 	bool tmp = true;
-	printf("Partitions: %d",partitions);
-	#pragma omp parallel for schedule(static) // CHANGED (einzeln speedup von 1,3x)
-	for(i=0; i<partitions; ++i) {
-		if(tmp){
-			//read+1 because '\0' is added automatically
-			int len = fread(str, sizeof(char), readIn+1, fpIn);
-			//add stopword '@' to end of block
-			str[len] = '@';
-			blockSizes[i] = writeAsBinary(binEncoding, str, len, fpOut);
+	gettimeofday(&tmp1, NULL);
+	//printf("Partitions: %d",partitions);
+	#pragma omp parallel
+	{
+		#pragma omp for lastprivate(i)//Change
+			for(i=0; i<partitions; ++i) {
+				if(tmp){
+					//read+1 because '\0' is added automatically
+					int len = fread(str, sizeof(char), readIn+1, fpIn);
+					//add stopword '@' to end of block
+					str[len] = '@';
+					blockSizes[i] = writeAsBinary(binEncoding, str, len, fpOut);
 
-			//eof, break loop
-			if(blockSizes[i] == 0) {
-				tmp = false;
+					//eof, break loop
+					if(blockSizes[i] == 0) {
+						tmp = false;
+					}
+				}
 			}
-		}
 	}
 
+
+	gettimeofday(&tmp2, NULL);
+    tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
+    printf("encodeTextFile: %.5fs\n",tmp_el);
+
+  gettimeofday(&tmp1, NULL);
+
+
 	//set pointer back to beginning of file
+		gettimeofday(&tmp3, NULL);
 	fseek(fpOut, 0, SEEK_SET);
+	gettimeofday(&tmp4, NULL);
+    tmp_el = (tmp4.tv_sec - tmp3.tv_sec) + ((tmp4.tv_usec - tmp3.tv_usec)/1000000.0);
+    printf("fseek: %.5fs\n",tmp_el);
+    printf("i: %ld\n",i);
 	createHeader(fpOut, blockSizes, i);
+
 
 	fclose(fpIn);
 	fclose(fpOut);
 
 	gettimeofday(&tmp2, NULL);
     tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
-    printf("encodeTextFile: %.5fs\n",tmp_el);
+    printf("encodeTextFile2: %.5fs\n",tmp_el);
+
 	return 1;
 }

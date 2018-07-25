@@ -42,10 +42,10 @@ int main(int argc, char** argv) {
 	if(!readData(filename[0], letters)) { // WICHTIG1
 		return 0;
 	}
-	gettimeofday(&tmp2, NULL);
+	/*gettimeofday(&tmp2, NULL);
     tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
-    #pragma omp single
     printf("Reading: %.5fs\n",tmp_el);
+*/
 
 //	printFreq();
 	root = createTree(letters);
@@ -58,13 +58,15 @@ int main(int argc, char** argv) {
     gettimeofday(&begin, NULL);
 
 	//start actual encoding
-	printf("start compressing ...");
-	gettimeofday(&tmp1, NULL);
+	//printf("start compressing ...\n");
+	//gettimeofday(&tmp1, NULL);
 	encodeTextFile(filename[0], fileEncoded,  binEncoding); // WICHTIG2
-	printf("done!\n");
+	//printf("done!\n");
+  /*
 	gettimeofday(&tmp2, NULL);
     tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
     printf("Compression: %.5fs\n",tmp_el);
+*/
 
     /*****************************
     ******************************
@@ -76,18 +78,22 @@ int main(int argc, char** argv) {
     *****************************/
 
 	//decode
-	gettimeofday(&tmp1, NULL);
-	printf("start decompressing ...");
+	//gettimeofday(&tmp1, NULL);
+	//printf("start decompressing ...\n");
 	decodeText(fileEncoded, filename[1], root); // WICHTIG3
-	printf("done!\n");
-	gettimeofday(&tmp2, NULL);
+	//printf("done!\n");
+	/*gettimeofday(&tmp2, NULL);
     tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
     printf("Decompression: %.5fs\n",tmp_el);
+*/
 
     gettimeofday(&end, NULL);
     elapsed = (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec)/1000000.0);
-    printf("Runtime: %.5fs\n",elapsed);
-    printf("Speedup: %.5fx\n",(0.56825/elapsed));
+    printf("Runtime: %.5fs, Speedup: %.5fx\n",elapsed, (0.514672/elapsed));
+    /*FILE * rt_writer = fopen("rt.txt","a");
+    fprintf(rt_writer,"%.5f\n",elapsed);
+    fclose(rt_writer);
+    */
 
 	delete[] letters;
 	delete[] binEncoding;

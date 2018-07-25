@@ -8,7 +8,6 @@ extern int symbols;
 extern struct node** root;
 
 char* key(struct key_value* binEncoding, int key) {
-
 	for(int i=0; i<root[0]->count; ++i) {
 		if(binEncoding[i].key == key) {
 			return binEncoding[i].value;
@@ -57,7 +56,7 @@ void printEncoding(struct key_value* Encoding, int size) {
 		if(Encoding[i].key != 10)
 			printf("%c:",Encoding[i].key);
 		else
-			printf("\\n:");	
+			printf("\\n:");
 		for(int j=1; j<Encoding[i].value[0]+1; ++j) {
 			printf("%d", Encoding[i].value[j]);
 		}
