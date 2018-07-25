@@ -16,7 +16,8 @@ struct node** root;
 int main(int argc, char** argv) {
     //time measurement
     double elapsed = 0;
-    struct timeval begin, end;
+    double tmp_el = 0;
+    struct timeval begin, end, tmp1, tmp2;
 
 	setbuf(stdout, NULL);
 	char filename[2][100];
@@ -36,10 +37,16 @@ int main(int argc, char** argv) {
 
 	int* letters = new int[symbols]();
 
+	gettimeofday(&tmp1, NULL);
 	//read data and create huffmann tree
 	if(!readData(filename[0], letters)) { // WICHTIG1
 		return 0;
 	}
+	gettimeofday(&tmp2, NULL);
+    tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
+    #pragma omp single
+    printf("Reading: %.5fs\n",tmp_el);
+
 //	printFreq();
 	root = createTree(letters);
 	struct key_value* binEncoding = new struct key_value[root[0]->count]();
@@ -52,8 +59,12 @@ int main(int argc, char** argv) {
 
 	//start actual encoding
 	printf("start compressing ...");
+	gettimeofday(&tmp1, NULL);
 	encodeTextFile(filename[0], fileEncoded,  binEncoding); // WICHTIG2
 	printf("done!\n");
+	gettimeofday(&tmp2, NULL);
+    tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
+    printf("Compression: %.5fs\n",tmp_el);
 
     /*****************************
     ******************************
@@ -65,13 +76,18 @@ int main(int argc, char** argv) {
     *****************************/
 
 	//decode
+	gettimeofday(&tmp1, NULL);
 	printf("start decompressing ...");
 	decodeText(fileEncoded, filename[1], root); // WICHTIG3
 	printf("done!\n");
+	gettimeofday(&tmp2, NULL);
+    tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
+    printf("Decompression: %.5fs\n",tmp_el);
 
     gettimeofday(&end, NULL);
-    elapsed += (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec)/1000000.0);
+    elapsed = (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec)/1000000.0);
     printf("Runtime: %.5fs\n",elapsed);
+    printf("Speedup: %.5fx\n",(0.56825/elapsed));
 
 	delete[] letters;
 	delete[] binEncoding;

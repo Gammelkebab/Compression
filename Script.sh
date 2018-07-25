@@ -2,12 +2,13 @@
 #PBS -N MPI
 #PBS -j oe
 #PBS -m ae
-#PBS -l nodes=1:ppn=2
-#PBS -l walltime=2:00:00
+#PBS -l nodes=4:ppn=4
+#PBS -l walltime=00:20:00
 #PBS -l mem=4gb
+#PBS -W x=PARTITION:lena
 
 module load foss
 
 make
 rm buf
-mpirun ./main
+mpirun ./main | tee log.txt

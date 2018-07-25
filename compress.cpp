@@ -4,35 +4,15 @@
 #include <omp.h>
 #include "compress.h"
 #include "tree.h"
+#include <sys/time.h>
 
 extern int readIn;
 extern int symbols;
+    double tmp_el = 0;
 
 void countSymbols(char data[], int size, int* letters) {
-	int* ctr;
-
-	#pragma omp parallel // CHANGED (einzeln harter freeze am anfang, aber 3x speedup)
-	{
-		const int 	
-			nthreads = omp_get_num_threads(),
-			ithread = omp_get_thread_num(),
-			brick = size / nthreads + 1;
-		#pragma omp single 
-		{
-			ctr = new int[symbols * nthreads];
-			for(int i = 0; i < (symbols * nthreads); i ++) ctr[i] = 0;
-		}
-		#pragma omp for
-		for (int i = ithread * brick; (i < ((ithread + 1) * brick) && i < size); i++){
-			ctr[i * symbols + (int)data[i]]++;
-		}
-		#pragma omp for
-		for (int i = 0; i < symbols; i++) {
-			for (int j = 0; j < nthreads; j++)
-			{
-				letters[i] += ctr[j * size + i];
-			}
-		}
+	for (int i=0; i<size; ++i) {
+		letters[(int)data[i]]++;
 	}
 }
 
@@ -106,9 +86,16 @@ int writeAsBinary(struct key_value* binEncoding, char str[], int inputsize, FILE
 	int bin_exp = 7;
 	int full_byte = 0;
 
+	struct timeval tmp1, tmp2;
+	gettimeofday(&tmp1, NULL);
+
+	//printf("inputsize: %d\n",inputsize);
+	//#pragma omp for
 	for(int i=0; i<inputsize; ++i) {
 		char* bin = key(binEncoding, str[i]);
 		//first value of bin is size of bin-1
+		//printf("bin[0]+1: %d\n",(bin[0]+1));
+		// private j? reduce bin?git add
 		for(int j=1; j<bin[0]+1; ++j) {
 			full_byte += bin[j]*pow(2,bin_exp);
 			bin_exp--;
@@ -128,6 +115,10 @@ int writeAsBinary(struct key_value* binEncoding, char str[], int inputsize, FILE
 	}
 
 	fwrite(&out[0], sizeof(char), num_bytes, fpOut);
+
+	gettimeofday(&tmp2, NULL);
+    tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
+    //printf("writeAsBinary: %.5fs\n",tmp_el);
 	return num_bytes;
 }
 
@@ -139,6 +130,9 @@ int writeAsBinary(struct key_value* binEncoding, char str[], int inputsize, FILE
 int encodeTextFile(char filename[], char output[], struct key_value* binEncoding) { //WICHTIG2
 	FILE *fpIn, *fpOut;
 	char str[readIn+1];
+
+	struct timeval tmp1, tmp2;
+	gettimeofday(&tmp1, NULL);
 
 	fpIn = fopen(filename, "r");
 	fpOut = fopen(output, "w+b");
@@ -164,7 +158,8 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	//header will be written later
 	fseek(fpOut, sizeof(long int)+partitions*sizeof(int), SEEK_SET);
 	bool tmp = true;
-	#pragma omp parallel for schedule(static, 256) // CHANGED (einzeln speedup von 1,3x)
+	printf("Partitions: %d",partitions);
+	#pragma omp parallel for schedule(static) // CHANGED (einzeln speedup von 1,3x)
 	for(i=0; i<partitions; ++i) {
 		if(tmp){
 			//read+1 because '\0' is added automatically
@@ -186,5 +181,9 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 
 	fclose(fpIn);
 	fclose(fpOut);
+
+	gettimeofday(&tmp2, NULL);
+    tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
+    printf("encodeTextFile: %.5fs\n",tmp_el);
 	return 1;
 }
