@@ -1,8 +1,0 @@
-#!/bin/bash
-if [ -d Compression ]
-then
-cd Compression
-fi
-git pull -f git://github.com/Gammelkebab/Compression.git
-./Script.sh
-

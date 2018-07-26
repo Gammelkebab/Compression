@@ -3,8 +3,8 @@
 #PBS -j oe
 #PBS -m ae
 #PBS -l nodes=1:ppn=1
-#PBS -l walltime=00:00:20
-#PBS -l mem=1gb
+#PBS -l walltime=00:00:05
+#PBS -l mem=128mb
 #PBS -W x=PARTITION:lena
 
 cd Compression/Compression_Benchmark
