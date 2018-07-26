@@ -7,7 +7,7 @@
 #PBS -l mem=1gb
 #PBS -W x=PARTITION:lena
 
-cd Compression
+cd Compression/Compression_Benchmark
 
 module load intel
 
