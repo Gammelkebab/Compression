@@ -66,6 +66,7 @@ long int getFileSize(FILE* fpIn) {
 */
 void createHeader(FILE* fpOut, int* blockSizes, long int count) {
 	fwrite(&count, sizeof(long int), 1, fpOut);
+	printf("~~~~~~~~~~~~~~~~~~~~count: %d~~~~~~~~~~~~~~~~~\n", count);
 	for(long int i=0; i<count; ++i) {
 		fwrite(&blockSizes[i], sizeof(int), 1, fpOut);
 	}
@@ -134,6 +135,9 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	long int partitions = size / readIn +1; // round up
 	int* blockSizes = new int[partitions]();
 	long int i;
+	
+	printf("LETTERS IN INPUT-FILE: %d\n", size);
+	printf("PARTITIONS: %d\n", partitions);
 
 	//we do not know how big each block is after compressing
 	//but we know how many blocks we have (long int)
