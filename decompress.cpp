@@ -2,9 +2,10 @@
 #include <stdio.h>
 #include "tree.h"
 #include "decompress.h"
+#include <cstring>
 
 extern struct node** root;
-extern int readIn;
+extern const int readIn;
 
 void charToBin(int c, char* output) {
 	for (int i = 7; i >= 0; --i) {
@@ -76,7 +77,8 @@ void decode(char chrInput[], int inputsize, struct node** root, FILE* fp) {
 int decodeText(char filename[], char output[], struct node** root) {
 	FILE* fpIn;
 	FILE* fpOut;
-	char str[readIn] = {0};
+	char str[readIn];
+    memset(str, 0, readIn * sizeof(char));
 
 	fpIn = fopen(filename, "rb");
 	fpOut = fopen(output, "w+");
@@ -102,7 +104,6 @@ int decodeText(char filename[], char output[], struct node** root) {
 		fread(&str[0], sizeof(char), blockSizes[i], fpIn);
 		decode(str, blockSizes[i], root, fpOut);
 	}
-
 
 	delete[] blockSizes;
 	fclose(fpIn);
