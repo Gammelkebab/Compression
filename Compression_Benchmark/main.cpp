@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 	
-	printFreq(letters);
+	//printFreq(letters);
 	root = createTree(letters);
 	struct key_value* binEncoding = new struct key_value[root[0]->count]();
 	encoding(binEncoding, root[0]);
