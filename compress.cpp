@@ -86,9 +86,6 @@ int writeAsBinary(struct key_value* binEncoding, char str[], int inputsize, FILE
 	int bin_exp = 7;
 	int full_byte = 0;
 
-	struct timeval tmp1, tmp2;
-	gettimeofday(&tmp1, NULL);
-
 	//printf("inputsize: %d\n",inputsize);
 	//#pragma omp parallel for schedule (guided)
 	for(int i=0; i<inputsize; ++i) {
@@ -112,12 +109,10 @@ int writeAsBinary(struct key_value* binEncoding, char str[], int inputsize, FILE
 		out[num_bytes] = full_byte;
 		num_bytes++;
 	}
-
+	#pragma omp critical
 	fwrite(&out[0], sizeof(char), num_bytes, fpOut);
 
-	gettimeofday(&tmp2, NULL);
-    tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
-    //printf("writeAsBinary: %.5fs\n",tmp_el);
+    
 	return num_bytes;
 }
 
@@ -158,15 +153,19 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	bool tmp = true;
 	gettimeofday(&tmp1, NULL);
 	//printf("Partitions: %d",partitions);
-	#pragma omp parallel
+	#pragma omp parallel 
 	{
 		#pragma omp for lastprivate(i) //Change
 			for(i=0; i<partitions; ++i) {
 				if(tmp) {
 					//read+1 because '\0' is added automatically
+					
+					// TODO: Liest jeder Thread die selben readIn Zeichen? Racecondition beim Lesen?
 					int len = fread(str, sizeof(char), readIn+1, fpIn);
 					//add stopword '@' to end of block
 					str[len] = '@';
+					 
+					// TODO: Racecondition beim schreiben in writeAsBinary?
 					blockSizes[i] = writeAsBinary(binEncoding, str, len, fpOut);
 
 					//eof, break loop
@@ -180,13 +179,12 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	gettimeofday(&tmp2, NULL);
     tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
     printf("encodeTextFile: %.5fs\n",tmp_el);
-
+	printf("Loop Variable i = %d\n", i);
 
 	gettimeofday(&tmp1, NULL);
 	
 	//set pointer back to beginning of file
 	fseek(fpOut, 0, SEEK_SET);
-	
 	createHeader(fpOut, blockSizes, i);
 
 
