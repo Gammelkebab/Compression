@@ -67,7 +67,6 @@ long int getFileSize(FILE* fpIn) {
 */
 void createHeader(FILE* fpOut, int* blockSizes, long int count) {
 	fwrite(&count, sizeof(long int), 1, fpOut);
-	printf("~~~~~~~~~~~~~~~~~~~~count: %d~~~~~~~~~~~~~~~~~\n", count);
 	for(long int i=0; i<count; ++i) {
 		fwrite(&blockSizes[i], sizeof(int), 1, fpOut);
 	}
@@ -123,8 +122,6 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	fpIn = fopen(filename, "r");
 	fpOut = fopen(output, "w+b");
 	
-	
-	struct timeval tmp1, tmp2, tmp3, tmp4;
 
 	//check files
 	if (fpIn == NULL) {
@@ -140,8 +137,6 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	int* blockSizes = new int[partitions]();
 	long int i;
 	
-	printf("LETTERS IN INPUT-FILE: %d\n", size);
-	printf("PARTITIONS: %d\n", partitions);
 
 	//we do not know how big each block is after compressing
 	//but we know how many blocks we have (long int)
@@ -150,7 +145,6 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	//header will be written later
 	fseek(fpOut, sizeof(long int)+partitions*sizeof(int), SEEK_SET);
 
-	gettimeofday(&tmp1, NULL);
 	for(i=0; i<partitions; ++i) {
 		//read+1 because '\0' is added automatically
 		int len = fread(str, sizeof(char), readIn+1, fpIn);
@@ -164,21 +158,10 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 		}
 	}
 
-	gettimeofday(&tmp2, NULL);
-    double tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
-    printf("encodeTextFile: %.5fs\n",tmp_el);
-    
-	gettimeofday(&tmp1, NULL);
 	//set pointer back to beginning of file
 	fseek(fpOut, 0, SEEK_SET);
 	
-	gettimeofday(&tmp1, NULL);
-	
 	createHeader(fpOut, blockSizes, i);
-	
-	gettimeofday(&tmp2, NULL);
-    double tmp_el = (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
-    printf("encodeTextFile: %.5fs\n",tmp_el);
     
 	fclose(fpIn);
 	fclose(fpOut);
