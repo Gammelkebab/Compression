@@ -2,15 +2,15 @@
 #PBS -N Compression
 #PBS -j oe
 #PBS -m ae
-#PBS -l nodes=1:ppn=16
+#PBS -l nodes=4:ppn=4
 #PBS -l walltime=00:00:05
 #PBS -l mem=128mb
-#PBS -W x=PARTITION:lena
+#PBS -W x=PARTITION:tane
 
 cd Compression
 
-module load intel
+module load foss
 
 make
 
-./main
+mpirun ./main
