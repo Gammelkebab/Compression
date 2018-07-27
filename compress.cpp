@@ -153,27 +153,19 @@ int encodeTextFile(char filename[], char output[], struct key_value* binEncoding
 	bool tmp = true;
 	gettimeofday(&tmp1, NULL);
 	//printf("Partitions: %d",partitions);
-	#pragma omp parallel 
-	{
-		#pragma omp for lastprivate(i) //Change
-			for(i=0; i<partitions; ++i) {
-				if(tmp) {
-					//read+1 because '\0' is added automatically
-					
-					// TODO: Liest jeder Thread die selben readIn Zeichen? Racecondition beim Lesen?
-					int len = fread(str, sizeof(char), readIn+1, fpIn);
-					//add stopword '@' to end of block
-					str[len] = '@';
-					 
-					// TODO: Racecondition beim schreiben in writeAsBinary?
-					blockSizes[i] = writeAsBinary(binEncoding, str, len, fpOut);
+	for(i=0; i<partitions; ++i) {
+		//read+1 because '\0' is added automatically
+		
+		int len = fread(str, sizeof(char), readIn+1, fpIn);
+		//add stopword '@' to end of block
+		str[len] = '@';
+		 
+		blockSizes[i] = writeAsBinary(binEncoding, str, len, fpOut);
 
-					//eof, break loop
-					if(blockSizes[i] == 0) {
-						tmp = false;
-					}
-				}
-			}
+		//eof, break loop
+		if(blockSizes[i] == 0) {
+			break;
+		}
 	}
 
 	gettimeofday(&tmp2, NULL);
