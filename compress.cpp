@@ -142,27 +142,11 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 	MPI_Offset size;
 	MPI_File_get_size(input_file, &size);
 
-	int partition_amt = proc_amt;
-	int partition_num = proc_num;
-	long long partition_size_max = size / proc_amt + 1; // round up
-	long long partition_size_min = size % partition_size_max;
-	int partition_size;
+	int block_size_max = readIn;
+	int block_size_min = size % block_size_max;
+	int block_amt = size / block_size_max + (size % block_size_max == 0 ? 0 : 1);
 
-	if (partition_num == partition_amt - 1)
-	{
-		partition_size = partition_size_min;
-	}
-	else
-	{
-		partition_size = partition_size_max;
-	}
-
-	// Read file
-	int offset = partition_size_max * partition_num;
-	char read_buffer[partition_size];
-	MPI_File_read_at_all(input_file, offset, read_buffer, partition_size, MPI_CHAR, MPI_STATUS_IGNORE);
-
-	MPI_File_close(&input_file);
+	printf("size: %d, bsmax: %d, bsmin: %d, bam: %d\n", size, block_size_max, block_size_min, block_amt);
 
 	/*
 	 * we do not know how big each block is after compressing
@@ -174,37 +158,74 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 
 	if (proc_num == 0) // This is the master thread
 	{
-		long long write_buffers_size[proc_amt];
-		char write_buffers[proc_amt][partition_size_max]; // Never more chars after compression then before
+		int write_buffers_size[block_amt];
+		char write_buffers[block_amt][block_size_max]; // Never more chars after compression then before
 
-		write_buffers_size[proc_num] = writeAsBinary(bin_encoding, read_buffer, partition_size, write_buffers[proc_num]);
-
-		// For all other processors
-		for (int proc = 1; proc < proc_amt; proc++)
+		for (int block = 0; block < block_amt; block++)
 		{
-			MPI_Recv(&write_buffers_size[proc], 1, MPI_LONG_LONG, proc, proc, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-			MPI_Recv(write_buffers[proc - 1], write_buffers_size[proc], MPI_CHAR, proc, proc, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Receive encoded data
+			int worker = block % proc_amt;
+
+			if (worker == 0)
+			{
+				// Read file
+				int offset = block_size_max * block;
+				int block_size = block == block_amt - 1 ? block_size_min : block_size_max;
+				char read_buffer[block_size];
+				MPI_File_read_at(input_file, offset, read_buffer, block_size, MPI_CHAR, MPI_STATUS_IGNORE);
+
+				long long write_buffer_size;
+				char write_buffer[block_size]; // Never more chars after compression then before
+				write_buffers_size[block] = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffers[block]);
+			}
+			else
+			{
+				MPI_Recv(&write_buffers_size[block], 1, MPI_LONG_LONG, worker, block, MPI_COMM_WORLD, MPI_STATUS_IGNORE);				 // Receive amount of encoded data
+				MPI_Recv(write_buffers[block], write_buffers_size[block], MPI_CHAR, worker, block, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Receive encoded data
+			}
+		}
+
+		for (int i = 0; i < block_amt; i++)
+		{
+			printf("Buffer %d: %d\n", i, write_buffers_size[i]);
 		}
 
 		MPI_File output_file;
-		MPI_File_open(MPI_COMM_WORLD, filename_out, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_file);
+		MPI_File_open(MPI_COMM_SELF, filename_out, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_file);
 
-		for (int partition = 0; partition < partition_amt; partition++)
+		long long offset = 0;
+		MPI_File_write_at(output_file, offset, &block_amt, 1, MPI_LONG, MPI_STATUS_IGNORE);
+		offset += 8;
+		MPI_File_write_at(output_file, offset, write_buffers_size, block_amt, MPI_INTEGER, MPI_STATUS_IGNORE);
+		offset += 4 * block_amt;
+
+		for (int block = 0; block < block_amt; block++)
 		{
-			long long offset = partition_size_max * partition;
-			MPI_File_write_at(output_file, offset, write_buffers[partition], write_buffers_size[partition], MPI_CHAR, MPI_STATUS_IGNORE);
+			MPI_File_write_at(output_file, offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, MPI_STATUS_IGNORE);
+			offset += write_buffers_size[block];
 		}
 	}
-	else
+	else // Not Processor 0
 	{
-		long long write_buffer_size;
-		char write_buffer[partition_size_max]; // Never more chars after compression then before
+		for (int block = proc_num; block < block_amt; block += proc_amt)
+		{
+			// Read file
+			int offset = block_size_max * block;
+			int block_size = block == block_amt - 1 ? block_size_min : block_size_max;
+			printf("bsize: %d\n", block_size);
 
-		write_buffer_size = writeAsBinary(bin_encoding, read_buffer, partition_size, write_buffer);
+			char read_buffer[block_size];
+			MPI_File_read_at(input_file, offset, read_buffer, block_size, MPI_CHAR, MPI_STATUS_IGNORE);
 
-		MPI_Send(&write_buffer_size, 1, MPI_LONG_LONG, 0, proc_num, MPI_COMM_WORLD);	  // Send size of encoded data
-		MPI_Send(write_buffer, write_buffer_size, MPI_CHAR, 0, proc_num, MPI_COMM_WORLD); // Send encoded data
+			long long write_buffer_size;
+			char write_buffer[block_size]; // Never more chars after compression then before
+			write_buffer_size = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffer);
+
+			MPI_Send(&write_buffer_size, 1, MPI_LONG_LONG, 0, block, MPI_COMM_WORLD);	  // Send size of encoded data
+			MPI_Send(write_buffer, write_buffer_size, MPI_CHAR, 0, block, MPI_COMM_WORLD); // Send encoded data
+		}
 	}
+
+	MPI_File_close(&input_file);
 
 	return 1;
 }
