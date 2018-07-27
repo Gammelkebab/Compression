@@ -1,4 +1,4 @@
-CC=g++
+CC=mpicxx
 CFLAGS = -g -Wall -Wextra -fopenmp -O3
 
 DEPS = tree.h compress.h decompress.h

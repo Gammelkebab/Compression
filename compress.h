@@ -35,6 +35,6 @@ int writeAsBinary(struct key_value* binEncoding, char str[], int inputsize, FILE
 // the file is split up in blocks of size readIn (global value)
 // each block is compressed seperately
 */
-int encodeTextFile(char filename[], char output[], struct key_value* binEncoding);
+int encodeTextFile(char filename[], char output[], struct key_value* binEncoding, int proc_amt, int proc_num);
 
 #endif
