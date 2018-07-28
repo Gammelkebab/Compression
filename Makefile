@@ -13,6 +13,10 @@ test : clean main
 	mpirun -np 4 ./main
 	diff -q lorem_ipsum.txt uncompressed.txt
 
+full : clean main
+	mpirun ./main
+	diff -q lorem_ipsum.txt uncompressed.txt
+
 #each object depends on the c-file with the same name
 %.o : %.cpp $(DEPS)
 	$(CC) $(CFLAGS) -c $<
