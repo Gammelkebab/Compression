@@ -144,7 +144,7 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 
 	int block_size_max = readIn;
 	int block_size_min = size % block_size_max;
-	int block_amt = size / block_size_max + (size % block_size_max == 0 ? 0 : 1);
+	long long block_amt = size / block_size_max + (size % block_size_max == 0 ? 0 : 1); // ! keep this long long, otherwise the header write fails
 
 	/*
 	 * we do not know how big each block is after compressing

@@ -11,7 +11,7 @@ main : $(OBJ)
 
 test : clean main
 	mpirun -np 4 ./main
-	diff lorem_ipsum.txt uncompressed.txt | wc -l
+	diff -q lorem_ipsum.txt uncompressed.txt
 
 #each object depends on the c-file with the same name
 %.o : %.cpp $(DEPS)

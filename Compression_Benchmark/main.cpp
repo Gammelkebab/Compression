@@ -7,7 +7,7 @@
 #include "decompress.h"
 
 int symbols = 128;
-int readIn = 65536;
+int readIn = 8192;
 
 struct node** root;
 
