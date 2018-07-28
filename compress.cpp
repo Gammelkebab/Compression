@@ -140,6 +140,8 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 	MPI_Offset size;
 	MPI_File_get_size(input_file, &size);
 
+	int worker_amt = proc_amt - 1;
+
 	int block_size_max = readIn;
 	int block_size_min = size % block_size_max;
 	int block_amt = size / block_size_max + (size % block_size_max == 0 ? 0 : 1);
@@ -156,46 +158,21 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 	{
 		int write_buffers_size[block_amt];
 		char write_buffers[block_amt][block_size_max]; // Never more chars after compression then before
-		MPI_Request recv_requests[block_amt];
-
+		
 		// Start receiving
+		MPI_Request recv_requests[block_amt];
 		for (int block = 0; block < block_amt; block++)
 		{
-			int worker = block % proc_amt;
-
-			if (worker != 0)
-			{
-				MPI_Irecv(&write_buffers[block], block_size_max, MPI_CHAR, worker, block, MPI_COMM_WORLD, &recv_requests[block]);
-			}
+			int worker = block % worker_amt + 1;
+			MPI_Irecv(&write_buffers[block], block_size_max, MPI_CHAR, worker, block, MPI_COMM_WORLD, &recv_requests[block]);
 		}
 
-		// Start working
-		for (int block = 0; block < block_amt; block++)
-		{
-			int worker = block % proc_amt;
-
-			if (worker == 0)
-			{
-				// Read file
-				int offset = block_size_max * block;
-				int block_size = block == block_amt - 1 ? block_size_min : block_size_max;
-				char read_buffer[block_size];
-				MPI_File_read_at(input_file, offset, read_buffer, block_size, MPI_CHAR, MPI_STATUS_IGNORE);
-
-				write_buffers_size[block] = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffers[block]);
-
-				recv_requests[block] = MPI_REQUEST_NULL;
-			}
-		}
-
+		// Wait for receives and count
 		MPI_Status recv_statuses[block_amt];
 		MPI_Waitall(block_amt, recv_requests, recv_statuses);
 		for (int block = 0; block < block_amt; block++)
 		{
-			if (block % proc_amt != 0)
-			{
-				MPI_Get_count(&recv_statuses[block], MPI_CHAR, &write_buffers_size[block]);
-			}
+			MPI_Get_count(&recv_statuses[block], MPI_CHAR, &write_buffers_size[block]);
 		}
 
 		MPI_File output_file;
@@ -212,10 +189,12 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			MPI_File_write_at(output_file, offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, MPI_STATUS_IGNORE);
 			offset += write_buffers_size[block];
 		}
+
+		MPI_File_close(&output_file);
 	}
 	else // Not Processor 0
 	{
-		for (int block = proc_num; block < block_amt; block += proc_amt)
+		for (int block = proc_num - 1; block < block_amt; block += worker_amt)
 		{
 			// Read file
 			int offset = block_size_max * block;

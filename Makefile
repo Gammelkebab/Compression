@@ -10,7 +10,7 @@ main : $(OBJ)
 	$(CC) $(CFLAGS) -o main $^
 
 test : clean main
-	mpirun -np 16 ./main
+	mpirun -np 4 ./main
 	diff lorem_ipsum.txt uncompressed.txt | wc -l
 
 #each object depends on the c-file with the same name
