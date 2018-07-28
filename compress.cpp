@@ -158,7 +158,7 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 	{
 		int write_buffers_size[block_amt];
 		char write_buffers[block_amt][block_size_max]; // Never more chars after compression then before
-		
+
 		// Start receiving
 		MPI_Request recv_requests[block_amt];
 		for (int block = 0; block < block_amt; block++)
@@ -167,28 +167,30 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			MPI_Irecv(&write_buffers[block], block_size_max, MPI_CHAR, worker, block, MPI_COMM_WORLD, &recv_requests[block]);
 		}
 
-		// Wait for receives and count
-		MPI_Status recv_statuses[block_amt];
-		MPI_Waitall(block_amt, recv_requests, recv_statuses);
-		for (int block = 0; block < block_amt; block++)
-		{
-			MPI_Get_count(&recv_statuses[block], MPI_CHAR, &write_buffers_size[block]);
-		}
-
 		MPI_File output_file;
 		MPI_File_open(MPI_COMM_SELF, filename_out, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_file);
 
-		long long offset = 0;
-		MPI_File_write_at(output_file, offset, &block_amt, 1, MPI_LONG, MPI_STATUS_IGNORE);
-		offset += 8;
-		MPI_File_write_at(output_file, offset, write_buffers_size, block_amt, MPI_INTEGER, MPI_STATUS_IGNORE);
-		offset += 4 * block_amt;
+		MPI_File_write_at(output_file, 0, &block_amt, 1, MPI_LONG, MPI_STATUS_IGNORE);
+		long long offset = 8 + 4 * block_amt;
+
+		MPI_Request header_write_requests[block_amt];
+		MPI_Request write_requests[block_amt];
 
 		for (int block = 0; block < block_amt; block++)
 		{
-			MPI_File_write_at(output_file, offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, MPI_STATUS_IGNORE);
+			MPI_Status recv_status;
+			MPI_Wait(&recv_requests[block], &recv_status);
+			MPI_Get_count(&recv_status, MPI_CHAR, &write_buffers_size[block]);
+
+			int offset_block_size = 8 + 4 * block;
+			MPI_File_iwrite_at(output_file, offset_block_size, &write_buffers_size[block], 1, MPI_INTEGER, &header_write_requests[block]);
+
+			MPI_File_iwrite_at(output_file, offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, &write_requests[block]);
 			offset += write_buffers_size[block];
 		}
+
+		MPI_Waitall(block_amt, header_write_requests, MPI_STATUSES_IGNORE);
+		MPI_Waitall(block_amt, write_requests, MPI_STATUSES_IGNORE);
 
 		MPI_File_close(&output_file);
 	}
