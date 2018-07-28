@@ -9,9 +9,15 @@ BIN = main
 main : $(OBJ)
 	$(CC) $(CFLAGS) -o main $^
 
+test : clean main
+	mpirun -np 16 ./main
+	diff lorem_ipsum.txt uncompressed.txt | wc -l
+
 #each object depends on the c-file with the same name
 %.o : %.cpp $(DEPS)
 	$(CC) $(CFLAGS) -c $<
 
 clean :
 	rm -rf $(BIN) $(OBJ)
+	rm -f lorem_ipsum.bin
+	rm -f uncompressed.txt

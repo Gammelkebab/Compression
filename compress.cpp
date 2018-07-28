@@ -160,6 +160,7 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 	{
 		int write_buffers_size[block_amt];
 		char write_buffers[block_amt][block_size_max]; // Never more chars after compression then before
+		MPI_Request recv_requests[block_amt];
 
 		for (int block = 0; block < block_amt; block++)
 		{
@@ -176,11 +177,22 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 				long long write_buffer_size;
 				char write_buffer[block_size]; // Never more chars after compression then before
 				write_buffers_size[block] = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffers[block]);
+
+				recv_requests[block] = MPI_REQUEST_NULL;
 			}
 			else
 			{
-				MPI_Recv(&write_buffers_size[block], 1, MPI_LONG_LONG, worker, block, MPI_COMM_WORLD, MPI_STATUS_IGNORE);				 // Receive amount of encoded data
-				MPI_Recv(write_buffers[block], write_buffers_size[block], MPI_CHAR, worker, block, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Receive encoded data
+				MPI_Irecv(&write_buffers[block], block_size_max, MPI_CHAR, worker, block, MPI_COMM_WORLD, &recv_requests[block]);
+			}
+		}
+
+		MPI_Status recv_statuses[block_amt];
+		MPI_Waitall(block_amt, recv_requests, recv_statuses);
+		for (int block = 0; block < block_amt; block++)
+		{
+			if (block % proc_amt != 0)
+			{
+				MPI_Get_count(&recv_statuses[block], MPI_CHAR, &write_buffers_size[block]);
 			}
 		}
 
@@ -220,8 +232,8 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			char write_buffer[block_size]; // Never more chars after compression then before
 			write_buffer_size = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffer);
 
-			MPI_Send(&write_buffer_size, 1, MPI_LONG_LONG, 0, block, MPI_COMM_WORLD);	  // Send size of encoded data
-			MPI_Send(write_buffer, write_buffer_size, MPI_CHAR, 0, block, MPI_COMM_WORLD); // Send encoded data
+			MPI_Request send_request;
+			MPI_Isend(write_buffer, write_buffer_size, MPI_CHAR, 0, block, MPI_COMM_WORLD, &send_request); // Send encoded data
 		}
 	}
 
