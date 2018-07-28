@@ -173,9 +173,6 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 		MPI_File_write_at(output_file, 0, &block_amt, 1, MPI_LONG, MPI_STATUS_IGNORE);
 		long long offset = 8 + 4 * block_amt;
 
-		MPI_Request header_write_requests[block_amt];
-		MPI_Request write_requests[block_amt];
-
 		for (int block = 0; block < block_amt; block++)
 		{
 			MPI_Status recv_status;
@@ -183,14 +180,11 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			MPI_Get_count(&recv_status, MPI_CHAR, &write_buffers_size[block]);
 
 			int offset_block_size = 8 + 4 * block;
-			MPI_File_iwrite_at(output_file, offset_block_size, &write_buffers_size[block], 1, MPI_INTEGER, &header_write_requests[block]);
+			MPI_File_write_at(output_file, offset_block_size, &write_buffers_size[block], 1, MPI_INTEGER, MPI_STATUS_IGNORE);
 
-			MPI_File_iwrite_at(output_file, offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, &write_requests[block]);
+			MPI_File_write_at(output_file, offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, MPI_STATUS_IGNORE);
 			offset += write_buffers_size[block];
 		}
-
-		MPI_Waitall(block_amt, header_write_requests, MPI_STATUSES_IGNORE);
-		MPI_Waitall(block_amt, write_requests, MPI_STATUSES_IGNORE);
 
 		MPI_File_close(&output_file);
 	}
