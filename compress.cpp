@@ -99,12 +99,10 @@ int writeAsBinary(struct key_value *binEncoding, char str_in[], int inputsize, c
 	int bin_exp = 7;
 	int full_byte = 0;
 
-	//printf("inputsize: %d\n",inputsize);
 	for (int i = 0; i < inputsize; ++i)
 	{
 		char *bin = key(binEncoding, str_in[i]);
 		//first value of bin is size of bin-1
-		//printf("bin[0]+1: %d\n",(bin[0]+1));
 		for (int j = 1; j < bin[0] + 1; ++j)
 		{
 			full_byte += bin[j] * pow(2, bin_exp);
@@ -146,8 +144,6 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 	int block_size_min = size % block_size_max;
 	int block_amt = size / block_size_max + (size % block_size_max == 0 ? 0 : 1);
 
-	printf("size: %d, bsmax: %d, bsmin: %d, bam: %d\n", size, block_size_max, block_size_min, block_amt);
-
 	/*
 	 * we do not know how big each block is after compressing
 	 * but we know how many blocks we have (long int)
@@ -174,8 +170,6 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 				char read_buffer[block_size];
 				MPI_File_read_at(input_file, offset, read_buffer, block_size, MPI_CHAR, MPI_STATUS_IGNORE);
 
-				long long write_buffer_size;
-				char write_buffer[block_size]; // Never more chars after compression then before
 				write_buffers_size[block] = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffers[block]);
 
 				recv_requests[block] = MPI_REQUEST_NULL;
@@ -194,11 +188,6 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			{
 				MPI_Get_count(&recv_statuses[block], MPI_CHAR, &write_buffers_size[block]);
 			}
-		}
-
-		for (int i = 0; i < block_amt; i++)
-		{
-			printf("Buffer %d: %d\n", i, write_buffers_size[i]);
 		}
 
 		MPI_File output_file;
@@ -223,7 +212,6 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			// Read file
 			int offset = block_size_max * block;
 			int block_size = block == block_amt - 1 ? block_size_min : block_size_max;
-			printf("bsize: %d\n", block_size);
 
 			char read_buffer[block_size];
 			MPI_File_read_at(input_file, offset, read_buffer, block_size, MPI_CHAR, MPI_STATUS_IGNORE);
