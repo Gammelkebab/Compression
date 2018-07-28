@@ -158,6 +158,18 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 		char write_buffers[block_amt][block_size_max]; // Never more chars after compression then before
 		MPI_Request recv_requests[block_amt];
 
+		// Start receiving
+		for (int block = 0; block < block_amt; block++)
+		{
+			int worker = block % proc_amt;
+
+			if (worker != 0)
+			{
+				MPI_Irecv(&write_buffers[block], block_size_max, MPI_CHAR, worker, block, MPI_COMM_WORLD, &recv_requests[block]);
+			}
+		}
+
+		// Start working
 		for (int block = 0; block < block_amt; block++)
 		{
 			int worker = block % proc_amt;
@@ -173,10 +185,6 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 				write_buffers_size[block] = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffers[block]);
 
 				recv_requests[block] = MPI_REQUEST_NULL;
-			}
-			else
-			{
-				MPI_Irecv(&write_buffers[block], block_size_max, MPI_CHAR, worker, block, MPI_COMM_WORLD, &recv_requests[block]);
 			}
 		}
 
