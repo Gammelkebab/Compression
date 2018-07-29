@@ -81,6 +81,7 @@ int main(int argc, char **argv)
 	if (proc_num == 0)
 		printf("start compressing ...\n");
 	gettimeofday(&tmp1, NULL);
+	// ENCODE
 	encodeTextFile(filename[0], fileEncoded, binEncoding, proc_amt, proc_num);
 	if (proc_num == 0)
 		printf("done!\n");
@@ -97,10 +98,8 @@ int main(int argc, char **argv)
 	gettimeofday(&tmp1, NULL);
 	if (proc_num == 0)
 		printf("start decompressing ...\n");
-	if (proc_num == 0)
-	{
-		decodeText(fileEncoded, filename[1], root);
-	}
+	// DECODE
+	decodeText(fileEncoded, filename[1], root, proc_amt, proc_num);
 	if (proc_num == 0)
 		printf("done!\n");
 	gettimeofday(&tmp2, NULL);
