@@ -171,7 +171,7 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 		MPI_File_open(MPI_COMM_SELF, filename_out, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_file);
 
 		MPI_File_write_at(output_file, 0, &block_amt, 1, MPI_LONG, MPI_STATUS_IGNORE);
-		long long offset = 8 + 4 * block_amt;
+		long long block_offset = 8 + 4 * block_amt;
 
 		for (int block = 0; block < block_amt; block++)
 		{
@@ -179,11 +179,11 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			MPI_Wait(&recv_requests[block], &recv_status);
 			MPI_Get_count(&recv_status, MPI_CHAR, &write_buffers_size[block]);
 
-			int offset_block_size = 8 + 4 * block;
-			MPI_File_write_at(output_file, offset_block_size, &write_buffers_size[block], 1, MPI_INTEGER, MPI_STATUS_IGNORE);
+			int block_header_offset = 8 + 4 * block;
+			MPI_File_write_at(output_file, block_header_offset, &write_buffers_size[block], 1, MPI_INTEGER, MPI_STATUS_IGNORE);
 
-			MPI_File_write_at(output_file, offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, MPI_STATUS_IGNORE);
-			offset += write_buffers_size[block];
+			MPI_File_write_at(output_file, block_offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, MPI_STATUS_IGNORE);
+			block_offset += write_buffers_size[block];
 		}
 
 		MPI_File_close(&output_file);
@@ -199,12 +199,12 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			char read_buffer[block_size];
 			MPI_File_read_at(input_file, offset, read_buffer, block_size, MPI_CHAR, MPI_STATUS_IGNORE);
 
-			long long write_buffer_size;
+			long long bytes_encoded;
 			char write_buffer[block_size]; // Never more chars after compression then before
-			write_buffer_size = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffer);
+			bytes_encoded = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffer);
 
 			MPI_Request send_request;
-			MPI_Isend(write_buffer, write_buffer_size, MPI_CHAR, 0, block, MPI_COMM_WORLD, &send_request); // Send encoded data
+			MPI_Isend(write_buffer, bytes_encoded, MPI_CHAR, 0, block, MPI_COMM_WORLD, &send_request); // Send encoded data
 		}
 	}
 
