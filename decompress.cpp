@@ -6,6 +6,7 @@
 #include "decompress.h"
 
 #include "tree.h"
+#include "timing.h"
 
 extern struct node **root;
 extern const int readIn;
@@ -85,6 +86,9 @@ int decode(char chrInput[], int inputsize, struct node **root, char chrOutput[])
 
 int decodeText(char filename_in[], char filename_out[], struct node **root, int proc_amt, int proc_num)
 {
+	timeval begin;
+	start_timer(&begin);
+
 	MPI_File input_file;
 	MPI_File_open(MPI_COMM_WORLD, filename_in, MPI_MODE_RDONLY, MPI_INFO_NULL, &input_file);
 
@@ -100,6 +104,13 @@ int decodeText(char filename_in[], char filename_out[], struct node **root, int 
 	int block_sizes[block_amt];
 
 	int read_offset = 8 + 4 * block_amt;
+
+	if (proc_num == 0)
+	{
+		printf("Setup \t- ");
+		print_time_since(&begin);
+		start_timer(&begin);
+	}
 
 	for (int block = 0; block < block_amt; block++)
 	{
@@ -127,8 +138,21 @@ int decodeText(char filename_in[], char filename_out[], struct node **root, int 
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
+	if (proc_num == 0)
+	{
+		printf("Loop \t- ");
+		print_time_since(&begin);
+		start_timer(&begin);
+	}
+
 	MPI_File_close(&input_file);
 	MPI_File_close(&output_file);
+
+	if (proc_num == 0)
+	{
+		printf("Cleanup \t- ");
+		print_time_since(&begin);
+	}
 
 	return 1;
 }
