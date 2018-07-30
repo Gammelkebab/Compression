@@ -98,7 +98,7 @@ int decodeText(char filename_in[], char filename_out[], struct node **root, int 
 	int worker_amt = proc_amt;
 
 	long long block_amt;
-	MPI_File_read_at(input_file, 0, &block_amt, 1, MPI_LONG_LONG, MPI_STATUS_IGNORE);
+	MPI_File_read_at_all(input_file, 0, &block_amt, 1, MPI_LONG_LONG, MPI_STATUS_IGNORE);
 
 	int block_size_max = readIn;
 	int block_sizes[block_amt];

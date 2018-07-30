@@ -11,4 +11,8 @@ cd $BIGWORK/Compression
 
 module load intel
 
-make full
+lfs setstripe --count -1 .
+
+make clean
+make
+mpirun ./main

@@ -13,7 +13,7 @@
 using namespace std;
 
 int symbols = 128;
-int readIn = 8192;
+int readIn = 65536;
 
 struct node **root;
 
