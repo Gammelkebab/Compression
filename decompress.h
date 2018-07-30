@@ -16,6 +16,6 @@ int decode(char chrInput[], int inputsize, struct node** root, char chrOutput[])
 //first the header is read
 //second each block of data is decoded
 */
-int decodeText(char filename[], char output[], struct node** root);
+int decodeText(char filename_in[], char filename_out[], struct node **root, int proc_amt, int proc_num);
 
 #endif
