@@ -9,6 +9,6 @@
 
 cd Compression
 
-module load foss
+module load intel
 
 make full
