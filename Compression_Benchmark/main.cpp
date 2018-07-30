@@ -13,8 +13,8 @@ struct node** root;
 
 int main(int argc, char** argv) {
     //time measurement
-    double elapsed = 0;
-    struct timeval begin, end;
+    double elapsed = 0, compression_elapsed = 0, decompression_elapsed = 0;
+    struct timeval begin, end, tmp1, tmp2;
 
 	setbuf(stdout, NULL);
 	char filename[2][100];
@@ -47,11 +47,17 @@ int main(int argc, char** argv) {
 	//printEncoding(binEncoding, root[0]->count);
 
     gettimeofday(&begin, NULL);
+    
 
 	//start actual encoding
 	printf("start compressing ...");
+    gettimeofday(&tmp1, NULL);
+    
 	encodeTextFile(filename[0], fileEncoded,  binEncoding);
-	printf("done!\n");
+
+    gettimeofday(&tmp2, NULL);
+    compression_elapsed += (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
+	printf("Compression done: %.5fs\n", compression_elapsed);
 
     /*****************************
     ******************************
@@ -64,8 +70,13 @@ int main(int argc, char** argv) {
 
 	//decode
 	printf("start decompressing ...");
+    gettimeofday(&tmp1, NULL);
+    
 	decodeText(fileEncoded, filename[1], root);
-	printf("done!\n");
+	
+    gettimeofday(&tmp2, NULL);
+    decompression_elapsed += (tmp2.tv_sec - tmp1.tv_sec) + ((tmp2.tv_usec - tmp1.tv_usec)/1000000.0);
+	printf("Decompression done: %.5fs\n", decompression_elapsed);
 
     gettimeofday(&end, NULL);
     elapsed += (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec)/1000000.0);
