@@ -83,6 +83,7 @@ int main(int argc, char **argv)
 	gettimeofday(&tmp1, NULL);
 	// ENCODE
 	encodeTextFile(filename[0], fileEncoded, binEncoding, proc_amt, proc_num);
+	MPI_Barrier(MPI_COMM_WORLD);
 	if (proc_num == 0)
 		printf("done!\n");
 	gettimeofday(&tmp2, NULL);
@@ -90,16 +91,13 @@ int main(int argc, char **argv)
 	if (proc_num == 0)
 		printf("Compression: %.5fs\n", tmp_el);
 
-	// Compressing of text file has to be completed,
-	// before decompressing starts do not compress and decompress at the same time
-	MPI_Barrier(MPI_COMM_WORLD);
-
 	// Decoding
 	gettimeofday(&tmp1, NULL);
 	if (proc_num == 0)
 		printf("start decompressing ...\n");
 	// DECODE
 	decodeText(fileEncoded, filename[1], root, proc_amt, proc_num);
+	MPI_Barrier(MPI_COMM_WORLD);
 	if (proc_num == 0)
 		printf("done!\n");
 	gettimeofday(&tmp2, NULL);
