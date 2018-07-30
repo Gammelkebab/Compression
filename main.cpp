@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 
 	setbuf(stdout, NULL);
 	char filename[2][100];
-	strcpy(filename[0], "lorem_ipsum.txt");
+	strcpy(filename[0], "lorem_ipsum_large.txt");
 	strcpy(filename[1], "uncompressed.txt");
 	for (int i = 1; i < argc; ++i)
 	{
