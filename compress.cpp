@@ -3,6 +3,7 @@
 #include <math.h>
 #include <omp.h>
 #include <sys/time.h>
+#include "timing.h"
 
 #include <mpi.h>
 
@@ -161,53 +162,62 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 
 		// Start receiving
 		MPI_Request recv_requests[block_amt];
-		
-		
+
+
 	    double elapsed = 0;
 	    double tmp_el = 0;
 	    struct timeval begin, end;
-	    
-	    
+
+
 		for (int block = 0; block < block_amt; block++)
 		{
 			int worker = block % worker_amt + 1;
 			MPI_Irecv(&write_buffers[block], block_size_max, MPI_CHAR, worker, block, MPI_COMM_WORLD, &recv_requests[block]);
 		}
-				
+
 		MPI_File output_file;
 		MPI_File_open(MPI_COMM_SELF, filename_out, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_file);
-        
+
 
 		MPI_File_write_at(output_file, 0, &block_amt, 1, MPI_LONG, MPI_STATUS_IGNORE);
 		long long block_offset = 8 + 4 * block_amt;
 
-		
+
 	    gettimeofday(&begin, NULL);
-	    
+
 		for (int block = 0; block < block_amt; block++)
 		{
 			MPI_Status recv_status;
 			MPI_Wait(&recv_requests[block], &recv_status);
 			MPI_Get_count(&recv_status, MPI_CHAR, &write_buffers_size[block]);
 
+			timeval begin;
+			start_timer(&begin);
+
 			int block_header_offset = 8 + 4 * block;
 			MPI_File_write_at(output_file, block_header_offset, &write_buffers_size[block], 1, MPI_INTEGER, MPI_STATUS_IGNORE);
 
 			MPI_File_write_at(output_file, block_offset, write_buffers[block], write_buffers_size[block], MPI_CHAR, MPI_STATUS_IGNORE);
 			block_offset += write_buffers_size[block];
+
+			printf("Writing block %d: ", block);
+			print_time_since(&begin);
 		}
 
-        
+
 	    gettimeofday(&end, NULL);
     	elapsed = (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec) / 1000000.0);
 		printf("Runtime of File_open + File_write_at: %.5fs\n", elapsed);
-		
+
 		MPI_File_close(&output_file);
 	}
 	else // Not Processor 0
 	{
 		for (int block = proc_num - 1; block < block_amt; block += worker_amt)
 		{
+			timeval begin;
+			start_timer(&begin);
+
 			// Read file
 			int offset = block_size_max * block;
 			int block_size = block == block_amt - 1 ? block_size_min : block_size_max;
@@ -215,9 +225,15 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			char read_buffer[block_size];
 			MPI_File_read_at(input_file, offset, read_buffer, block_size, MPI_CHAR, MPI_STATUS_IGNORE);
 
+			printf("Reading block %d: ", block);
+			print_time_since(&begin);
+
 			long long bytes_encoded;
 			char write_buffer[block_size]; // Never more chars after compression then before
 			bytes_encoded = writeAsBinary(bin_encoding, read_buffer, block_size, write_buffer);
+
+			printf("Encoding block %d: ", block);
+			print_time_since(&begin);
 
 			MPI_Request send_request;
 			MPI_Isend(write_buffer, bytes_encoded, MPI_CHAR, 0, block, MPI_COMM_WORLD, &send_request); // Send encoded data

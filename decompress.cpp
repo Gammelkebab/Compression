@@ -95,8 +95,6 @@ int decodeText(char filename_in[], char filename_out[], struct node **root, int 
 	MPI_File output_file;
 	MPI_File_open(MPI_COMM_WORLD, filename_out, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_file);
 
-	int worker_amt = proc_amt;
-
 	long long block_amt;
 	MPI_File_read_at_all(input_file, 0, &block_amt, 1, MPI_LONG_LONG, MPI_STATUS_IGNORE);
 
