@@ -177,15 +177,13 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 		MPI_File output_file;
 		MPI_File_open(MPI_COMM_SELF, filename_out, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_file);
         
-	    gettimeofday(&begin, NULL);
 
 		MPI_File_write_at(output_file, 0, &block_amt, 1, MPI_LONG, MPI_STATUS_IGNORE);
 		long long block_offset = 8 + 4 * block_amt;
 
-	    gettimeofday(&end, NULL);
-    	elapsed = (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec) / 1000000.0);
-		printf("Runtime of File_open + File_write_at: %.5fs\n", elapsed);
 		
+	    gettimeofday(&begin, NULL);
+	    
 		for (int block = 0; block < block_amt; block++)
 		{
 			MPI_Status recv_status;
@@ -199,6 +197,11 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 			block_offset += write_buffers_size[block];
 		}
 
+        
+	    gettimeofday(&end, NULL);
+    	elapsed = (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec) / 1000000.0);
+		printf("Runtime of File_open + File_write_at: %.5fs\n", elapsed);
+		
 		MPI_File_close(&output_file);
 	}
 	else // Not Processor 0
