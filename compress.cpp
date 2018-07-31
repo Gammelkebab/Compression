@@ -161,11 +161,25 @@ int encodeTextFile(char filename_in[], char filename_out[], struct key_value *bi
 
 		// Start receiving
 		MPI_Request recv_requests[block_amt];
+		
+		
+	    double elapsed = 0;
+	    double tmp_el = 0;
+	    struct timeval begin, end;
+	    
+	    
+	    gettimeofday(&begin, NULL);
+	    
 		for (int block = 0; block < block_amt; block++)
 		{
 			int worker = block % worker_amt + 1;
 			MPI_Irecv(&write_buffers[block], block_size_max, MPI_CHAR, worker, block, MPI_COMM_WORLD, &recv_requests[block]);
 		}
+		
+		
+	    gettimeofday(&end, NULL);
+    	elapsed = (end.tv_sec - begin.tv_sec) + ((end.tv_usec - begin.tv_usec) / 1000000.0);
+		printf("Runtime of Irecv: %.5fs\n", elapsed);
 
 		MPI_File output_file;
 		MPI_File_open(MPI_COMM_SELF, filename_out, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_file);
