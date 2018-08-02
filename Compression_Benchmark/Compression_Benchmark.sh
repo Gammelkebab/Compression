@@ -7,7 +7,7 @@
 #PBS -l mem=128mb
 #PBS -W x=PARTITION:lena
 
-cd Compression/Compression_Benchmark
+cd $BIGWORK/Compression/Compression_Benchmark
 
 module load intel
 
